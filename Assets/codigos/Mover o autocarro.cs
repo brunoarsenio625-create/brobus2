@@ -1,46 +1,63 @@
-
 using UnityEngine;
 
 public class mover : MonoBehaviour
 {
-    public float velocidade = 15f;
+    public float velocidadeMax = 15f;
+    public float aceleracao = 10f;
     public float velocidadeVirar = 100f;
 
+    private float velocidadeAtual = 0f;
     private Rigidbody rb;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
 
-        // N�o deixa o autocarro tombar
+        // Não capotar
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
-        // IMPORTANTE para colis�es funcionarem bem
+        // Física estável (SUPER IMPORTANTE)
         rb.interpolation = RigidbodyInterpolation.Interpolate;
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+
+        rb.mass = 1500f;
+        rb.linearDamping = 1.5f;
+        rb.angularDamping = 3f;
     }
 
     void FixedUpdate()
     {
-        float frente = Input.GetAxis("Vertical"); // W/S
+        float frente = Input.GetAxis("Vertical");     // W/S + Setas
+        float virar = Input.GetAxis("Horizontal");    // A/D + Setas
 
-        // Movimento usando f�sica (correto)
-        Vector3 movimento = transform.forward * frente * velocidade;
-        rb.linearVelocity = new Vector3(movimento.x, rb.linearVelocity.y, movimento.z);
-
-        // Travar quando n�o h� input
-        if (Mathf.Abs(frente) < 0.1f)
+        // 🚗 ACELERAÇÃO REAL
+        if (Mathf.Abs(frente) > 0.1f)
         {
-            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+            velocidadeAtual += aceleracao * Time.fixedDeltaTime;
+            velocidadeAtual = Mathf.Clamp(velocidadeAtual, 0, velocidadeMax);
+        }
+        else
+        {
+            // trava suave
+            velocidadeAtual = Mathf.Lerp(velocidadeAtual, 0, 3f * Time.fixedDeltaTime);
         }
 
-        // Virar
-        float virar = Input.GetAxis("Horizontal"); // A/D
+        // 🚗 MOVIMENTO COM FÍSICA (SEM BUGAR COLISÃO)
+        Vector3 movimento = transform.forward * frente * velocidadeAtual;
 
+        // substitui uso obsoleto de rb.velocity por rb.linearVelocity
+        Vector3 currentLinear = rb.linearVelocity;
+        rb.linearVelocity = new Vector3(
+            movimento.x,
+            currentLinear.y,
+            movimento.z
+        );
+
+        // 🔄 ROTAÇÃO
         if (Mathf.Abs(virar) > 0.1f)
         {
-            Quaternion rotacao = Quaternion.Euler(0, virar * velocidadeVirar * Time.fixedDeltaTime, 0);
-            rb.MoveRotation(rb.rotation * rotacao);
+            float rot = virar * velocidadeVirar * Time.fixedDeltaTime;
+            rb.MoveRotation(rb.rotation * Quaternion.Euler(0, rot, 0));
         }
     }
 }
