@@ -3,16 +3,29 @@ using UnityEngine;
 public class LogicaParagem : MonoBehaviour
 {
     public float tempoNecessario = 3f;
+
     private float cronometro = 0f;
-    private bool autocarroEstaAqui = false;
+    private bool recolhido = false;
 
     void OnTriggerStay(Collider other)
     {
-        // Verifica se é o autocarro que está na paragem
-        if (other.gameObject.name == "kozak_i_van")
+        if (other.gameObject.name == "kozak_i_van" && !recolhido)
         {
-            autocarroEstaAqui = true;
+            // Procura o gestor da missão
+            MissaoManager gestor = FindFirstObjectByType<MissaoManager>();
+
+            // Se a missão acabou, não faz nada
+            if (gestor == null || !gestor.MissaoAtiva())
+            {
+                return;
+            }
+
             cronometro += Time.deltaTime;
+
+            // Mensagem enquanto espera
+            gestor.textoHUD.text =
+                "A apanhar alunos... " +
+                Mathf.Ceil(tempoNecessario - cronometro) + "s";
 
             if (cronometro >= tempoNecessario)
             {
@@ -23,18 +36,33 @@ public class LogicaParagem : MonoBehaviour
 
     void OnTriggerExit(Collider other)
     {
-        if (other.gameObject.name == "kozak_i_van")
+        if (other.gameObject.name == "kozak_i_van" && !recolhido)
         {
-            autocarroEstaAqui = false;
-            cronometro = 0f; // Reset se sair antes do tempo
+            cronometro = 0f;
+
+            MissaoManager gestor = FindFirstObjectByType<MissaoManager>();
+
+            if (gestor != null && gestor.MissaoAtiva())
+            {
+                gestor.textoHUD.text =
+                    "Nao apanhaste os alunos!";
+            }
         }
     }
 
     void RecolherAlunos()
     {
-        Debug.Log("Alunos recolhidos com sucesso!");
-        cronometro = -999f; // Impede de ganhar pontos infinitos na mesma paragem
-        // Aqui podemos apagar os bonecos da paragem depois
-        gameObject.SetActive(false); // A paragem desaparece ou muda de cor
+        recolhido = true;
+
+        Debug.Log("Alunos recolhidos!");
+
+        MissaoManager gestor = FindFirstObjectByType<MissaoManager>();
+
+        if (gestor != null)
+        {
+            gestor.AdicionarAlunosDaParagem(5);
+        }
+
+        gameObject.SetActive(false);
     }
 }

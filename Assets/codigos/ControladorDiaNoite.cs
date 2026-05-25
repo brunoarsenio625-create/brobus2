@@ -19,8 +19,8 @@ public class ControladorDiaNoite : MonoBehaviour
             luzSol.intensity = eDia ? 1f : 0.1f;
 
             // --- PROCURA OS FARÓIS ---
-            // Isto procura todas as luzes que marcaste com a Tag "farois"
-            GameObject[] farois = GameObject.FindGameObjectsWithTag("farois");
+            // Isto procura todas as luzes que marcaste com a Tag "Farois"
+            GameObject[] farois = GameObject.FindGameObjectsWithTag("Farois");
 
             foreach (GameObject farol in farois)
             {
@@ -28,7 +28,7 @@ public class ControladorDiaNoite : MonoBehaviour
                 if (luz != null)
                 {
                     luz.enabled = !eDia; // Liga se for noite, desliga se for dia
-                }
+                }   
             }
 
             DynamicGI.UpdateEnvironment(); // Atualiza a iluminação global

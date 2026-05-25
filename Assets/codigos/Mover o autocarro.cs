@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class mover : MonoBehaviour
+public class Mover : MonoBehaviour
 {
     public float velocidadeMax = 15f;
     public float aceleracao = 10f;
@@ -13,50 +13,49 @@ public class mover : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
 
-        // Não capotar
-        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-
-        // Física estável (SUPER IMPORTANTE)
+        // CONFIGURAÇÃO ANT-ATRAVESSAR
         rb.interpolation = RigidbodyInterpolation.Interpolate;
+        // ContinuousDynamic é o modo mais forte para não atravessar paredes
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        rb.mass = 1500f;
-        rb.linearDamping = 1.5f;
-        rb.angularDamping = 3f;
+        // Peso de um autocarro real para não ser empurrado por bugs
+        rb.mass = 2000f;
+        rb.linearDamping = 2f;
+        rb.angularDamping = 5f;
+
+        // Impede de capotar mas permite girar no Y
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
     }
 
     void FixedUpdate()
     {
-        float frente = Input.GetAxis("Vertical");     // W/S + Setas
-        float virar = Input.GetAxis("Horizontal");    // A/D + Setas
+        float frente = Input.GetAxis("Vertical");
+        float virar = Input.GetAxis("Horizontal");
 
-        // 🚗 ACELERAÇÃO REAL
+        // 1. LÓGICA DE ACELERAÇÃO
         if (Mathf.Abs(frente) > 0.1f)
         {
             velocidadeAtual += aceleracao * Time.fixedDeltaTime;
-            velocidadeAtual = Mathf.Clamp(velocidadeAtual, 0, velocidadeMax);
         }
         else
         {
-            // trava suave
-            velocidadeAtual = Mathf.Lerp(velocidadeAtual, 0, 3f * Time.fixedDeltaTime);
+            velocidadeAtual = Mathf.MoveTowards(velocidadeAtual, 0, aceleracao * Time.fixedDeltaTime * 2f);
         }
+        velocidadeAtual = Mathf.Clamp(velocidadeAtual, 0, velocidadeMax);
 
-        // 🚗 MOVIMENTO COM FÍSICA (SEM BUGAR COLISÃO)
-        Vector3 movimento = transform.forward * frente * velocidadeAtual;
+        // 2. MOVIMENTO USANDO FORÇA (FORÇA É MELHOR QUE VELOCIDADE DIRETA PARA NÃO ATRAVESSAR)
+        Vector3 direcaoDesejada = transform.forward * frente * velocidadeAtual;
 
-        // substitui uso obsoleto de rb.velocity por rb.linearVelocity
-        Vector3 currentLinear = rb.linearVelocity;
-        rb.linearVelocity = new Vector3(
-            movimento.x,
-            currentLinear.y,
-            movimento.z
-        );
+        // Mantemos o Y da gravidade mas aplicamos a força no X e Z
+        Vector3 novaVelocidade = new Vector3(direcaoDesejada.x, rb.linearVelocity.y, direcaoDesejada.z);
+        rb.linearVelocity = novaVelocidade;
 
-        // 🔄 ROTAÇÃO
-        if (Mathf.Abs(virar) > 0.1f)
+        // 3. ROTAÇÃO SUAVE
+        if (Mathf.Abs(virar) > 0.1f && velocidadeAtual > 0.1f)
         {
-            float rot = virar * velocidadeVirar * Time.fixedDeltaTime;
+            // O autocarro só vira se estiver em movimento (mais realista)
+            float fatorVelocidade = Mathf.Clamp01(velocidadeAtual / 5f);
+            float rot = virar * velocidadeVirar * Time.fixedDeltaTime * fatorVelocidade;
             rb.MoveRotation(rb.rotation * Quaternion.Euler(0, rot, 0));
         }
     }
