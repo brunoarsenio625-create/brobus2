@@ -7,6 +7,12 @@ TagManager:
   - 'cidade '
   - Farois
   - Missao
+  - Alunos
+  - Aluno
+  - SpawnBonus
+  - Autocarro
+  - Bonus
+  - Chao
   layers:
   - Default
   - TransparentFX

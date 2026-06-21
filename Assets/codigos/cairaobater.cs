@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class CairAoBater : MonoBehaviour
 {
-    [Header("Força da queda")]
+    [Header("Forï¿½a da queda")]
     public float forcaEmpurrao = 250f;
 
     [Header("Velocidade minima")]
@@ -13,44 +13,46 @@ public class CairAoBater : MonoBehaviour
 
     void Start()
     {
-        // Guarda o Rigidbody
+        // Garante que o Rigidbody existe para nï¿½o dar erro na consola
         rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
 
-        // Segurança
-        if (rb != null)
+        // Configuraï¿½ï¿½o inicial segura
+        rb.isKinematic = true;
+        rb.useGravity = true;
+    }
+
+    void Update()
+    {
+        // SEGUNDA SEGURANï¿½A: Se o poste atravessar o chï¿½o e cair no void, 
+        // ele trava a queda numa altura mï¿½nima (ajusta o -10f se o teu mapa for mais baixo)
+        if (caiu && transform.position.y < -10f)
         {
             rb.isKinematic = true;
-            rb.useGravity = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
     }
 
     void OnCollisionEnter(Collision col)
     {
-        // Evita cair duas vezes
-        if (caiu)
-            return;
+        if (caiu) return;
 
         // Verifica se foi o autocarro
         if (col.gameObject.name == "kozak_i_van")
         {
-            // Velocidade do impacto
             float impacto = col.relativeVelocity.magnitude;
 
-            // Só cai se bater forte
             if (impacto >= velocidadeMinima)
             {
                 caiu = true;
+                rb.isKinematic = false; // Ativa a gravidade fï¿½sica
 
-                // Liga física
-                rb.isKinematic = false;
-
-                // Direção do impacto
                 Vector3 direcao = col.contacts[0].point - transform.position;
-
-                // Faz cair realisticamente
                 rb.AddForce(-direcao.normalized * forcaEmpurrao);
-
-                // Faz rodar
                 rb.AddTorque(Random.insideUnitSphere * 200f);
 
                 Debug.Log("POSTE DERRUBADO!");
